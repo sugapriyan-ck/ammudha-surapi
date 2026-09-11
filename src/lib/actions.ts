@@ -102,7 +102,28 @@ export async function logIn(formData: FormData) {
     .eq("id", data.user.id)
     .single();
 
-  redirect(profile?.role === "donor" ? "/donor/dashboard" : "/rescuer/dashboard");
+  // Self-heal: users created before the handle_new_user trigger existed
+  // have an auth account but no profile row. Create it from auth metadata.
+  let effectiveRole: Role | undefined = profile?.role as Role | undefined;
+  if (!profile) {
+    const meta = data.user.user_metadata ?? {};
+    const name = String(meta.name ?? meta.full_name ?? data.user.email?.split("@")[0] ?? "Member");
+    const role = (meta.role as Role) ?? "rescuer";
+    effectiveRole = role;
+    await supabase.from("profiles").upsert(
+      {
+        id: data.user.id,
+        name,
+        organization: String(meta.organization ?? "Home"),
+        email: data.user.email ?? "",
+        role,
+      },
+      { onConflict: "id" }
+    );
+    revalidatePath("/", "layout");
+  }
+
+  redirect(effectiveRole === "donor" ? "/donor/dashboard" : "/rescuer/dashboard");
 }
 
 export async function signInWithGoogle(role?: string) {
