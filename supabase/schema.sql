@@ -5,7 +5,15 @@
 
 -- Extensions
 create extension if not exists "uuid-ossp";
-create extension if not exists "postgis" schema extensions;  -- optional; omit if unavailable
+
+-- PostGIS is optional; skip if not available on your plan
+do $$
+begin
+  create extension if not exists "postgis" schema extensions;
+exception when others then
+  -- PostGIS not available, continue without it
+  null;
+end $$;
 
 -- ---------- Profiles ----------
 create table public.profiles (
@@ -166,7 +174,18 @@ create policy "users can update own notifications"
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  -- Profile will be created by the client on signup with full info.
+  insert into public.profiles (id, name, organization, email, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'name', new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'organization', 'Home'),
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'role', 'rescuer')
+  )
+  on conflict (id) do update set
+    name = excluded.name,
+    organization = excluded.organization,
+    role = excluded.role;
   return new;
 end;
 $$;

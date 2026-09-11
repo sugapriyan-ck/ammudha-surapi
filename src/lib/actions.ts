@@ -42,19 +42,25 @@ export async function signUp(formData: FormData) {
   if (error) return { error: error.message };
   if (!data.user) return { error: "Signup failed. Please try again." };
 
-  const { error: profileError } = await supabase.from("profiles").insert({
-    id: data.user.id,
-    name,
-    organization,
-    email,
-    role,
-    lat,
-    lng,
-  });
-
-  // If profile insert fails because RLS/policy, don't crash signup —
-  // the signup trigger in schema.sql covers the common case.
-  if (profileError && !data.session) return { error: profileError.message };
+  // The handle_new_user trigger in schema.sql automatically creates the
+  // profile from auth metadata. Only do a client-side upsert when there
+  // is an active session (email confirmation disabled), because RLS
+  // requires auth.uid() = id and without a session that check fails.
+  if (data.session) {
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      {
+        id: data.user.id,
+        name,
+        organization,
+        email,
+        role,
+        lat,
+        lng,
+      },
+      { onConflict: "id" }
+    );
+    if (profileError) return { error: profileError.message };
+  }
 
   // No session means Supabase is set to email-confirmation mode.
   if (!data.session) {
