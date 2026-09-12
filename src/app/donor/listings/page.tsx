@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmPickupButton } from "@/components/confirm-pickup-button";
 import { Timeline } from "@/components/timeline";
 import { fetchDonorListings } from "@/lib/data";
-import { estimateKgDiverted, getUrgencyInfo, countdownText, formatRescueId } from "@/lib/rescue-score";
-import { UtensilsIcon, StatusDot } from "@/components/icons";
+import { estimateKgDiverted, formatRescueId } from "@/lib/rescue-score";
+import { statusLabel, statusVariant } from "@/lib/status";
+import { UtensilsIcon } from "@/components/icons";
+import { CountdownTimer } from "@/components/countdown-timer";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +49,6 @@ export default async function MyListingsPage() {
         ) : (
           <div className="mt-6 space-y-4">
             {listings.map((listing) => {
-              const u = getUrgencyInfo(listing.pickup_deadline);
               const kg = estimateKgDiverted(listing.quantity, listing.unit);
               const proof =
                 listing.claim?.status === "distribution_completed"
@@ -71,36 +72,31 @@ export default async function MyListingsPage() {
                       <Badge variant={statusVariant(listing.status)}>
                         {statusLabel(listing.status)}
                       </Badge>
-                    </div>
+</div>
 
-                    {/* Timeline */}
-                    <Timeline currentStatus={listing.status} className="mt-4" />
+                      {/* Timeline */}
+                      <Timeline currentStatus={listing.status} className="mt-4" />
 
-                    <div className="mt-4 rounded-xl bg-warm-cream p-3 text-sm">
-                      {listing.status === "distribution_completed" && proof ? (
-                        <p className="text-center font-medium text-sage-dark">
-                          {listing.quantity} {listing.unit} rescued · ~{kg} kg diverted
-                          {proof.rescuer ? ` · Rescued by ${proof.rescuer.organization}` : ""}
-                        </p>
-                      ) : listing.claim?.rescuer ? (
-                        <p className="text-center font-medium text-charcoal">
-                          Rescued by <span className="text-terracotta">{listing.claim.rescuer.organization}</span>
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-charcoal-muted">
-                            {countdownText(u.minutesLeft)} until pickup deadline
+                      <div className="mt-4 rounded-xl bg-warm-cream p-3 text-sm">
+                        {listing.status === "distribution_completed" && proof ? (
+                          <p className="text-center font-medium text-sage-dark">
+                            {listing.quantity} {listing.unit} rescued · ~{kg} kg diverted
+                            {proof.rescuer ? ` · Rescued by ${proof.rescuer.organization}` : ""}
                           </p>
-                          <Badge variant={u.tier === "critical" ? "danger" : u.tier === "at_risk" ? "warning" : "success"}>
-                            <StatusDot tone={u.tone} />
-                            {u.label}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Donor confirm pickup */}
-                    {listing.status === "claimed" && listing.claim?.rescuer && (
+                        ) : listing.claim?.rescuer ? (
+                          <p className="text-center font-medium text-charcoal">
+                            Rescued by <span className="text-terracotta">{listing.claim.rescuer.organization}</span>
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <CountdownTimer deadline={listing.pickup_deadline} showDeadlineTime />
+                            <p className="text-xs text-charcoal-muted">
+                              Before the food must go to someone.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    {listing.status === "pickup_in_progress" && listing.claim?.rescuer && (
                       <ConfirmPickupButton listingId={listing.id} orgName={listing.claim.rescuer.organization} />
                     )}
 
@@ -109,6 +105,19 @@ export default async function MyListingsPage() {
                         Food picked up{listing.claim?.picked_up_at ? ` on ${new Date(listing.claim.picked_up_at).toLocaleString()}` : ""} — awaiting distribution proof
                       </p>
                     )}
+
+                    {listing.status === "distribution_in_progress" && (
+                      <p className="mt-3 rounded-xl bg-sage/10 p-3 text-center text-sm font-medium text-sage-dark">
+                        Distribution in progress — the rescuer will submit proof shortly
+                      </p>
+                    )}
+
+                    {listing.status === "available" &&
+                      new Date(listing.pickup_deadline).getTime() <= new Date().getTime() && (
+                        <p className="mt-3 rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-700">
+                          Deadline passed — this listing was never claimed
+                        </p>
+                      )}
                   </CardContent>
                 </Card>
               );
@@ -118,34 +127,4 @@ export default async function MyListingsPage() {
       </div>
     </main>
   );
-}
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "available":
-      return "success";
-    case "claimed":
-      return "warning";
-    case "picked_up":
-      return "primary";
-    case "distribution_completed":
-      return "neutral";
-    default:
-      return "neutral";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "available":
-      return "Available";
-    case "claimed":
-      return "Claimed";
-    case "picked_up":
-      return "Picked Up";
-    case "distribution_completed":
-      return "Distribution Completed";
-    default:
-      return status;
-  }
 }

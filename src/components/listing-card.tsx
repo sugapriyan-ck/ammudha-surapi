@@ -10,53 +10,28 @@ import {
   distanceKm,
   formatDistance,
   getUrgencyInfo,
+  getRescueScoreTier,
   countdownText,
 } from "@/lib/rescue-score";
 import type { FoodListing } from "@/lib/types";
 import { claimListing } from "@/lib/actions";
 import { StatusDot } from "@/components/icons";
+import { statusLabel, statusVariant } from "@/lib/status";
 
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? "#7EA172" : score >= 40 ? "#E2725B" : "#D8A48F";
+  const tier = getRescueScoreTier(score);
   return (
     <div
-      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-      style={{ backgroundColor: color }}
-      title={`Rescue Score: ${score}/100`}
+      className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full text-sm font-bold leading-none text-white"
+      style={{ backgroundColor: tier.color }}
+      title={`Rescue Score: ${score}/100 — ${tier.label}`}
     >
-      {score}
+      <span>{score}</span>
+      <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide opacity-90">
+        {tier.label}
+      </span>
     </div>
   );
-}
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "available":
-      return "success";
-    case "claimed":
-      return "warning";
-    case "picked_up":
-      return "primary";
-    case "distribution_completed":
-      return "neutral";
-    default:
-      return "neutral";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "available":
-      return "Available";
-    case "claimed":
-      return "Claimed";
-    case "picked_up":
-      return "Picked Up";
-    case "distribution_completed":
-      return "Distribution Completed";
-    default:
-      return status;
-  }
 }
 
 export function ListingCard({
@@ -94,6 +69,7 @@ export function ListingCard({
   }, [listing, userLat, userLng, now]);
 
   const urgency = getUrgencyInfo(listing.pickup_deadline, now);
+  const isExpired = urgency.minutesLeft <= 0;
   const distKm = userLat != null && userLng != null ? distanceKm(userLat, userLng, listing.lat, listing.lng) : null;
 
   return (
@@ -116,6 +92,13 @@ export function ListingCard({
           <p className="mt-2 line-clamp-2 text-sm text-charcoal/70">{listing.description}</p>
         )}
 
+        {listing.status === "available" && listing.safety_confirmed && (
+          <p className="mt-2 inline-flex items-center gap-1 rounded-lg bg-sage/10 px-2 py-0.5 text-xs font-medium text-sage-dark">
+            <StatusDot tone="green" /> Safety declared
+            {listing.storage_condition ? ` · ${listing.storage_condition}` : ""}
+          </p>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           {distKm != null && listing.status === "available" && (
             <span className="font-medium text-charcoal/80">{formatDistance(distKm)}</span>
@@ -126,6 +109,9 @@ export function ListingCard({
             />
             {countdownText(urgency.minutesLeft)}
           </Badge>
+          {isExpired && listing.status === "available" && (
+            <Badge variant="danger">Expired — no claims</Badge>
+          )}
           {listing.status !== "available" && listing.claim?.rescuer && (
             <Badge variant="primary">Rescued by {listing.claim.rescuer.organization}</Badge>
           )}
@@ -140,7 +126,7 @@ export function ListingCard({
           </ul>
         )}
 
-        {listing.status === "available" && (
+        {listing.status === "available" && !isExpired && (
           <form
             action={async (formData) => {
               await claimListing(formData);
@@ -152,6 +138,12 @@ export function ListingCard({
               Claim Food
             </Button>
           </form>
+        )}
+
+        {listing.status === "available" && isExpired && (
+          <Button type="button" disabled className="mt-3 w-full" size="sm">
+            Deadline passed
+          </Button>
         )}
 
         {listing.status !== "available" && listing.claim?.rescuer_id && (

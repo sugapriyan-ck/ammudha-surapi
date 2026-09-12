@@ -14,13 +14,19 @@ export type DietaryType = "Vegetarian" | "Non-Vegetarian" | "Vegan" | "Other";
 export type ListingStatus =
   | "available"
   | "claimed"
+  | "pickup_in_progress"
   | "picked_up"
+  | "distribution_in_progress"
   | "distribution_completed";
 
 export type ClaimStatus =
   | "claimed"
+  | "pickup_in_progress"
   | "picked_up"
+  | "distribution_in_progress"
   | "distribution_completed";
+
+export type StorageCondition = "Refrigerated" | "Room Temperature" | "Frozen" | "Other";
 
 export interface Profile {
   id: string;
@@ -43,6 +49,9 @@ export interface FoodListing {
   dietary_type: DietaryType;
   description?: string | null;
   pickup_deadline: string;
+  prepared_at?: string | null;
+  storage_condition?: StorageCondition | null;
+  safety_confirmed?: boolean | null;
   lat: number;
   lng: number;
   status: ListingStatus;
@@ -56,7 +65,9 @@ export interface Claim {
   listing_id: string;
   rescuer_id: string;
   claimed_at: string;
+  pickup_in_progress_at?: string | null;
   picked_up_at?: string | null;
+  distribution_in_progress_at?: string | null;
   completed_at?: string | null;
   status: ClaimStatus;
   rescuer?: Profile | null;
@@ -92,5 +103,6 @@ export interface RescueCardData {
   kgDiverted: number;
   peopleServed: number;
   organizationName: string;
+  foodName?: string;
   created_at: string;
 }

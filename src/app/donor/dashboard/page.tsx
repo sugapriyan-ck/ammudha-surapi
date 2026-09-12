@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchDonorListings } from "@/lib/data";
-import { estimateKgDiverted, getUrgencyInfo, countdownText } from "@/lib/rescue-score";
-import { PlusIcon, UtensilsIcon, StatusDot } from "@/components/icons";
+import { estimateKgDiverted } from "@/lib/rescue-score";
+import { statusLabel, statusVariant } from "@/lib/status";
+import { PlusIcon, UtensilsIcon, WarningIcon } from "@/components/icons";
+import { CountdownTimer } from "@/components/countdown-timer";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,10 @@ export default async function DonorDashboardPage() {
 
   const completed = listings.filter((l) => l.status === "distribution_completed");
   const active = listings.filter((l) => l.status !== "distribution_completed");
+  const expired = active.filter(
+    (l) =>
+      l.status === "available" && new Date(l.pickup_deadline).getTime() <= new Date().getTime()
+  );
 
   const mealsDonated = completed.reduce((s, l) => s + l.quantity, 0);
   const kgDiverted = Math.round(
@@ -63,7 +69,21 @@ export default async function DonorDashboardPage() {
         </div>
 
         {/* Active listings */}
-        <section className="mt-10">
+        {expired.length > 0 && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-red-700">
+                <WarningIcon size={16} />
+                Expired — no one claimed these
+              </p>
+              <p className="mt-1 text-sm text-red-600/80">
+                {expired.length} listing{expired.length === 1 ? "" : "s"} passed their pickup
+                deadline with no claims. Consider republishing freshly prepared food with a
+                realistic deadline.
+              </p>
+            </div>
+          )}
+
+          <section className="mt-10">
           <h2 className="mb-4 text-lg font-semibold text-charcoal">
             Active listings{" "}
             <Badge variant="primary" className="ml-1">{active.length}</Badge>
@@ -86,13 +106,6 @@ export default async function DonorDashboardPage() {
           ) : (
             <div className="space-y-3">
               {active.map((listing) => {
-                const u = getUrgencyInfo(listing.pickup_deadline);
-                const statusVariant =
-                  listing.status === "claimed"
-                    ? "warning"
-                    : listing.status === "picked_up"
-                    ? "primary"
-                    : "success";
                 return (
                   <Link key={listing.id} href={`/donor/listings`} className="block">
                     <Card className="transition hover:shadow-md">
@@ -102,8 +115,8 @@ export default async function DonorDashboardPage() {
                             <h3 className="truncate font-semibold text-charcoal">
                               {listing.food_name}
                             </h3>
-                            <Badge variant={statusVariant as "warning" | "primary" | "success"}>
-                              {listing.status === "claimed" ? "Claimed" : listing.status === "picked_up" ? "Picked Up" : "Available"}
+                            <Badge variant={statusVariant(listing.status)}>
+                              {statusLabel(listing.status)}
                             </Badge>
                           </div>
                           <p className="mt-0.5 text-sm text-charcoal-muted">
@@ -116,10 +129,7 @@ export default async function DonorDashboardPage() {
                           )}
                         </div>
                         <div className="text-right text-sm">
-                          <Badge variant={u.tier === "critical" ? "danger" : u.tier === "at_risk" ? "warning" : "success"}>
-                            <StatusDot tone={u.tone} />
-                            {countdownText(u.minutesLeft)}
-                          </Badge>
+                          <CountdownTimer deadline={listing.pickup_deadline} showDeadlineTime />
                         </div>
                       </CardContent>
                     </Card>

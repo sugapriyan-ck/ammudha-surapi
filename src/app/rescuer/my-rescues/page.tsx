@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Timeline } from "@/components/timeline";
 import { fetchRescuerClaims } from "@/lib/data";
 import { estimateKgDiverted, formatRescueId } from "@/lib/rescue-score";
+import { claimStatusLabel, claimStatusVariant } from "@/lib/status";
 import { LeafIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -91,7 +92,7 @@ export default async function MyRescuesPage() {
                         </Badge>
                       </div>
 
-                      <Timeline currentStatus={claimStatusToListing(claim.status)} className="mt-4" />
+                      <Timeline currentStatus={claim.status} className="mt-4" />
 
                       {proof && (
                         <div className="mt-3 rounded-xl bg-sage/10 p-3 text-sm text-sage-dark">
@@ -122,36 +123,4 @@ function MiniStat({ value, label }: { value: number; label: string }) {
       </CardContent>
     </Card>
   );
-}
-
-function claimStatusVariant(status: string) {
-  switch (status) {
-    case "claimed":
-      return "warning";
-    case "picked_up":
-      return "primary";
-    case "distribution_completed":
-      return "success";
-    default:
-      return "neutral";
-  }
-}
-
-function claimStatusLabel(status: string) {
-  switch (status) {
-    case "claimed":
-      return "Claimed";
-    case "picked_up":
-      return "Picked Up";
-    case "distribution_completed":
-      return "Distribution Completed";
-    default:
-      return status;
-  }
-}
-
-function claimStatusToListing(status: string) {
-  if (status === "distribution_completed") return "distribution_completed" as const;
-  if (status === "picked_up") return "picked_up" as const;
-  return "claimed" as const;
 }

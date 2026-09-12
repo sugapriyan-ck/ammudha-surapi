@@ -15,7 +15,8 @@ import {
   countdownText,
   formatRescueId,
 } from "@/lib/rescue-score";
-import { HeartHandIcon, LeafIcon } from "@/components/icons";
+import { statusLabel, statusVariant } from "@/lib/status";
+import { HeartHandIcon, LeafIcon, ShieldCheckIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -113,10 +114,21 @@ export default async function RescueDetailPage({
                   Rescued by{" "}
                   <span className="text-terracotta">{claim.rescuer.organization}</span>
                 </p>
-                <p className="mt-1 text-xs text-charcoal-muted">
-                  Claimed {new Date(claim.claimed_at).toLocaleString()}
-                  {claim.picked_up_at ? ` · Picked up ${new Date(claim.picked_up_at).toLocaleString()}` : ""}
-                  {claim.completed_at ? ` · Completed ${new Date(claim.completed_at).toLocaleString()}` : ""}
+                <ChainOfCustody listing={listing} claim={claim} />
+              </div>
+            )}
+
+            {listing.safety_confirmed && (
+              <div className="mt-4 rounded-xl bg-sage/10 p-4">
+                <p className="flex items-center gap-2 font-medium text-sage-dark">
+                  <ShieldCheckIcon size={16} />
+                  Food safety declared by the donor
+                </p>
+                <p className="mt-1 text-sm text-sage-dark">
+                  {listing.prepared_at
+                    ? `Prepared ${new Date(listing.prepared_at).toLocaleString()}`
+                    : "Preparation time not recorded"}
+                  {listing.storage_condition ? ` · Stored: ${listing.storage_condition}` : ""}
                 </p>
               </div>
             )}
@@ -167,12 +179,11 @@ export default async function RescueDetailPage({
               <RescueCard
                 data={{
                   rescueId: formatRescueId(listing.id),
-                  mealsRescued: Math.round(listing.quantity),
-                  kgDiverted: Math.round(
-                    estimateKgDivertedNumber(listing.quantity, listing.unit)
-                  ),
+                  mealsRescued: mealsEstimate(listing.quantity, listing.unit),
+                  kgDiverted: Math.round(estimateKgDivertedNumber(listing.quantity, listing.unit)),
                   peopleServed: (proofData?.people_served ?? 0) as number,
                   organizationName: claim?.rescuer?.organization ?? "",
+                  foodName: listing.food_name,
                   created_at: listing.created_at,
                 }}
               />
@@ -194,6 +205,46 @@ function estimateKgDivertedNumber(quantity: number, unit: string) {
   return quantity * (multipliers[unit] ?? 1);
 }
 
+function mealsEstimate(quantity: number, unit: string): number {
+  if (unit === "Meals") return Math.round(quantity);
+  return Math.round(quantity * (unit === "Boxes" ? 8 : unit === "Packs" ? 4 : 2));
+}
+
+function ChainOfCustody({
+  listing,
+  claim,
+}: {
+  listing: { created_at: string };
+  claim: {
+    claimed_at: string;
+    pickup_in_progress_at?: string | null;
+    picked_up_at?: string | null;
+    distribution_in_progress_at?: string | null;
+    completed_at?: string | null;
+  };
+}) {
+  const steps: Array<{ label: string; at?: string | null }> = [
+    { label: "Listed", at: listing.created_at },
+    { label: "Claimed", at: claim.claimed_at },
+    { label: "Pickup in progress", at: claim.pickup_in_progress_at },
+    { label: "Picked up", at: claim.picked_up_at },
+    { label: "Distribution in progress", at: claim.distribution_in_progress_at },
+    { label: "Completed", at: claim.completed_at },
+  ];
+  return (
+    <ul className="mt-2 space-y-1 border-t border-terracotta/10 pt-2 text-xs text-charcoal-muted">
+      {steps.map((s) => (
+        <li key={s.label} className="flex items-center justify-between gap-3">
+          <span>{s.label}</span>
+          <span className={s.at ? "font-medium text-charcoal" : "text-charcoal/30"}>
+            {s.at ? new Date(s.at).toLocaleString() : "—"}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -201,34 +252,4 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="mt-0.5 font-medium text-charcoal">{value}</p>
     </div>
   );
-}
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "available":
-      return "success";
-    case "claimed":
-      return "warning";
-    case "picked_up":
-      return "primary";
-    case "distribution_completed":
-      return "neutral";
-    default:
-      return "neutral";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "available":
-      return "Available";
-    case "claimed":
-      return "Claimed";
-    case "picked_up":
-      return "Picked Up";
-    case "distribution_completed":
-      return "Distribution Completed";
-    default:
-      return status;
-  }
 }

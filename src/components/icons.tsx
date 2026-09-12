@@ -185,6 +185,15 @@ export function HeartHandIcon(props: IconProps) {
   );
 }
 
+export function ShieldCheckIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-3Z" />
+      <path d="m8.5 11.5 2.5 2.5 4.5-5" />
+    </svg>
+  );
+}
+
 export function ArrowRightIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

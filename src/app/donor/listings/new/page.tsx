@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { createListing } from "@/lib/actions";
+import { CountdownTimer } from "@/components/countdown-timer";
 import type { ListingCategory, DietaryType } from "@/lib/types";
 
 const CATEGORIES: ListingCategory[] = [
@@ -36,6 +37,16 @@ export default function NewListingPage() {
         ? "Enter coordinates manually"
         : "Fetching your location…"
   );
+  const [deadline, setDeadline] = useState<string>(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 2);
+    return d.toISOString().slice(0, 16);
+  });
+  const [preparedAt, setPreparedAt] = useState<string>(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - 5);
+    return d.toISOString().slice(0, 16);
+  });
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -76,9 +87,7 @@ export default function NewListingPage() {
     setLoading(false);
   }
 
-  const now = new Date();
-  now.setHours(now.getHours() + 2);
-  const defaultDeadline = now.toISOString().slice(0, 16);
+  const deadlineLive = deadline ? new Date(deadline) : null;
 
   return (
     <main className="flex-1 px-4 pb-24 pt-6 lg:ml-64 lg:px-8 lg:pb-8 lg:pt-8">
@@ -145,10 +154,74 @@ export default function NewListingPage() {
 
               <div>
                 <Label>Pickup deadline *</Label>
-                <Input name="pickup_deadline" type="datetime-local" required defaultValue={defaultDeadline} />
-                <p className="mt-1 text-xs text-charcoal-muted">
-                  How long the food remains available for rescue.
+                <Input
+                  name="pickup_deadline"
+                  type="datetime-local"
+                  required
+                  defaultValue={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {deadlineLive && <CountdownTimer deadline={deadlineLive} showDeadlineTime />}
+                  <p className="text-xs text-charcoal-muted">
+                    How long the food remains available for rescue. Freshness matters —
+                    rescuers see this countdown too.
+                  </p>
+                </div>
+              </div>
+
+              {/* Food safety declaration */}
+              <div className="rounded-2xl border border-sage/30 bg-sage/5 p-4">
+                <Label>Food safety declaration *</Label>
+                <p className="mb-4 text-sm text-charcoal-muted">
+                  Tell rescuers when the food was prepared and how it was stored. All three
+                  declarations must be confirmed.
                 </p>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <Label>
+                      Prepared at <span className="text-xs text-charcoal-muted">(approx.)</span> *
+                    </Label>
+                    <Input
+                      name="prepared_at"
+                      type="datetime-local"
+                      required
+                      defaultValue={preparedAt}
+                      onChange={(e) => setPreparedAt(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Storage condition *</Label>
+                    <Select name="storage_condition" required defaultValue="Room Temperature">
+                      <option value="Refrigerated">Refrigerated</option>
+                      <option value="Room Temperature">Room Temperature</option>
+                      <option value="Frozen">Frozen</option>
+                      <option value="Other">Other</option>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2.5">
+                  {[
+                    ["safety_handled", "The food has been safely handled and kept clean."],
+                    ["safety_in_date", "The food is within its safe consumption period — no spoilage, contamination, or recalled items."],
+                    ["safety_safe", "I confirm this surplus food is safe for human consumption."],
+                  ].map(([name, text]) => (
+                    <label
+                      key={name}
+                      className="flex items-start gap-2.5 rounded-xl bg-white p-3 text-sm text-charcoal/80 ring-1 ring-charcoal/5"
+                    >
+                      <input
+                        type="checkbox"
+                        name={name}
+                        required
+                        className="mt-0.5 h-4 w-4 rounded accent-terracotta"
+                      />
+                      {text}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Location */}

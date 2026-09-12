@@ -164,3 +164,14 @@ export function estimateKgDiverted(quantity: number, unit: string): number {
 export function formatRescueId(id: string): string {
   return `AS-${id.slice(0, 8).toUpperCase()}`;
 }
+
+export type RescueScoreTierKey = "low" | "moderate" | "high" | "critical";
+
+export function getRescueScoreTier(
+  score: number
+): { key: RescueScoreTierKey; label: string; color: string } {
+  if (score >= 90) return { key: "critical", label: "Critical", color: "#D96C5B" };
+  if (score >= 70) return { key: "high", label: "High", color: "#E2A24B" };
+  if (score >= 40) return { key: "moderate", label: "Moderate", color: "#7EA172" };
+  return { key: "low", label: "Low", color: "#B9B4AC" };
+}

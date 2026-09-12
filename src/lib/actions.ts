@@ -9,8 +9,20 @@ import type {
   DietaryType,
   QuantityUnit,
   Role,
+  StorageCondition,
 } from "@/lib/types";
 import { estimateKgDiverted } from "@/lib/rescue-score";
+
+const STORAGE_CONDITIONS: StorageCondition[] = [
+  "Refrigerated",
+  "Room Temperature",
+  "Frozen",
+  "Other",
+];
+
+function parseCheckbox(value: FormDataEntryValue | null): boolean {
+  return value === "on" || value === "1" || value === "true";
+}
 
 function assertString(v: FormDataEntryValue | null, label: string): string {
   if (!v) throw new Error(`${label} is required`);
@@ -220,6 +232,29 @@ export async function createListing(formData: FormData) {
   if (!quantity || quantity <= 0) return { error: "Quantity must be greater than 0" };
   if (!lat || !lng) return { error: "Location is required" };
 
+  // ---- Food safety declaration ----
+  const safetyHandled = parseCheckbox(formData.get("safety_handled"));
+  const safetyInDate = parseCheckbox(formData.get("safety_in_date"));
+  const safetySafe = parseCheckbox(formData.get("safety_safe"));
+
+  if (!safetyHandled || !safetyInDate || !safetySafe) {
+    return { error: "All food safety declarations must be confirmed before listing." };
+  }
+
+  const storageCondition = formData.get("storage_condition") as StorageCondition | null;
+  if (
+    !storageCondition ||
+    !STORAGE_CONDITIONS.includes(storageCondition)
+  ) {
+    return { error: "Storage condition is required." };
+  }
+
+  const preparedAt = formData.get("prepared_at") ? new Date(String(formData.get("prepared_at"))).toISOString() : null;
+
+  if (new Date(pickup_deadline).getTime() <= Date.now()) {
+    return { error: "Pickup deadline must be in the future." };
+  }
+
   const { error } = await supabase.from("food_listings").insert({
     donor_id: user.id,
     food_name,
@@ -229,6 +264,9 @@ export async function createListing(formData: FormData) {
     dietary_type,
     description,
     pickup_deadline: new Date(pickup_deadline).toISOString(),
+    prepared_at: preparedAt,
+    storage_condition: storageCondition,
+    safety_confirmed: true,
     lat,
     lng,
     status: "available",
@@ -267,6 +305,20 @@ export async function claimListing(formData: FormData) {
 
   const listingId = assertString(formData.get("listing_id"), "Listing id");
 
+  // A listing can only be claimed while available and before its deadline.
+  const { data: listing, error: listingError } = await supabase
+    .from("food_listings")
+    .select("id, donor_id, food_name, pickup_deadline, status")
+    .eq("id", listingId)
+    .single();
+
+  if (listingError || !listing) return { error: "This listing is no longer available." };
+  if (listing.status !== "available") return { error: "This listing has already been claimed." };
+  if (listing.donor_id === user.id) return { error: "You cannot claim your own listing." };
+  if (new Date(listing.pickup_deadline).getTime() <= Date.now()) {
+    return { error: "This listing has expired and can no longer be claimed." };
+  }
+
   // Transactional-ish: insert claim + update listing status.
   const { error: claimError } = await supabase
     .from("claims")
@@ -277,12 +329,6 @@ export async function claimListing(formData: FormData) {
   await supabase.from("food_listings").update({ status: "claimed" }).eq("id", listingId);
 
   // Notify the donor.
-  const { data: listing } = await supabase
-    .from("food_listings")
-    .select("donor_id, food_name")
-    .eq("id", listingId)
-    .single();
-
   const { data: rescuer } = await supabase
     .from("profiles")
     .select("organization")
@@ -302,6 +348,78 @@ export async function claimListing(formData: FormData) {
   redirect("/rescuer/dashboard");
 }
 
+export async function startPickup(listingId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: claim } = await supabase
+    .from("claims")
+    .select("id, rescuer_id, listing:food_listings(donor_id, food_name, status)")
+    .eq("listing_id", listingId)
+    .single();
+
+  const listing = claim?.listing as { donor_id: string; food_name: string; status: string } | undefined;
+  if (!claim || !listing) return { error: "No claim exists for this listing" };
+  if (claim.rescuer_id !== user.id) return { error: "Only the claiming organization can start pickup." };
+  if (listing.status !== "claimed") return { error: "Pickup can only start after a claim." };
+
+  await supabase.from("food_listings").update({ status: "pickup_in_progress" }).eq("id", listingId);
+  await supabase
+    .from("claims")
+    .update({ status: "pickup_in_progress", pickup_in_progress_at: new Date().toISOString() })
+    .eq("listing_id", listingId);
+
+  if (listing.donor_id) {
+    await supabase.from("notifications").insert({
+      user_id: listing.donor_id,
+      title: "Pickup in progress 🚚",
+      message: `A rescuer is on their way to pick up "${listing.food_name}". Confirm the pickup when they arrive.`,
+      type: "pickup",
+    });
+  }
+
+  revalidatePath("/", "layout");
+}
+
+export async function startDistribution(listingId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: claim } = await supabase
+    .from("claims")
+    .select("id, rescuer_id, listing:food_listings(donor_id, food_name, status)")
+    .eq("listing_id", listingId)
+    .single();
+
+  const listing = claim?.listing as { donor_id: string; food_name: string; status: string } | undefined;
+  if (!claim || !listing) return { error: "No claim exists for this listing" };
+  if (claim.rescuer_id !== user.id) return { error: "Only the claiming organization can start distribution." };
+  if (listing.status !== "picked_up") return { error: "Distribution can only start after pickup." };
+
+  await supabase.from("food_listings").update({ status: "distribution_in_progress" }).eq("id", listingId);
+  await supabase
+    .from("claims")
+    .update({ status: "distribution_in_progress", distribution_in_progress_at: new Date().toISOString() })
+    .eq("listing_id", listingId);
+
+  if (listing.donor_id) {
+    await supabase.from("notifications").insert({
+      user_id: listing.donor_id,
+      title: "Distribution in progress 🥗",
+      message: `"${listing.food_name}" is being distributed to people in need.`,
+      type: "pickup",
+    });
+  }
+
+  revalidatePath("/", "layout");
+}
+
 export async function confirmPickup(listingId: string) {
   const supabase = await createClient();
   const {
@@ -310,6 +428,15 @@ export async function confirmPickup(listingId: string) {
   if (!user) return { error: "Not authenticated" };
 
   // Donor confirms pickup.
+  const { data: listing } = await supabase
+    .from("food_listings")
+    .select("donor_id")
+    .eq("id", listingId)
+    .single();
+  if (!listing || listing.donor_id !== user.id) {
+    return { error: "Only the listing donor can confirm pickup." };
+  }
+
   await supabase.from("food_listings").update({ status: "picked_up" }).eq("id", listingId);
 
   const { data: claim } = await supabase
@@ -383,11 +510,14 @@ export async function submitDistributionProof(formData: FormData) {
 
   const { data: claim } = await supabase
     .from("claims")
-    .select("id, rescuer_id, listing_id")
+    .select("id, rescuer_id, listing_id, listing:food_listings(status)")
     .eq("listing_id", listingId)
     .single();
 
   if (!claim) return { error: "No claim exists for this listing" };
+  if ((claim.listing as { status?: string } | undefined)?.status !== "distribution_in_progress") {
+    return { error: "Distribution must be in progress before submitting proof." };
+  }
 
   const { data: proof, error: proofError } = await supabase
     .from("distribution_proofs")

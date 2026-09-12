@@ -95,6 +95,7 @@ export default function DiscoveryFeed() {
     const filtered = listings.filter((l) => {
       if (category !== "All" && l.category !== category) return false;
       if (dietary !== "All" && l.dietary_type !== dietary) return false;
+      if (new Date(l.pickup_deadline).getTime() <= now.getTime()) return false;
       return true;
     });
     return filtered

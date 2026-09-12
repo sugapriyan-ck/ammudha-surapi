@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { fetchGlobalImpact, fetchRecentRescues } from "@/lib/data";
+import { fetchGlobalImpact, fetchRecentRescues, fetchPersonalImpact } from "@/lib/data";
 import { formatRescueId, estimateKgDiverted } from "@/lib/rescue-score";
 import {
   UtensilsIcon,
@@ -11,6 +11,9 @@ import {
   HeartHandIcon,
   CheckCircleIcon,
   LeafIcon,
+  ClockIcon,
+  SparkIcon,
+  UsersIcon,
 } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,16 @@ export default async function ImpactPage() {
 
   const impact = await fetchGlobalImpact();
   const recent = await fetchRecentRescues(10);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const personal =
+    profile?.role === "donor" || profile?.role === "rescuer"
+      ? await fetchPersonalImpact(user.id, profile.role)
+      : null;
 
   return (
     <main className="flex-1 px-4 pb-24 pt-16 lg:pt-6 lg:px-8 lg:pb-8">
@@ -39,6 +52,43 @@ export default async function ImpactPage() {
           <GlobalStat Icon={HeartHandIcon} value={impact.peopleServed} label="People Served" />
           <GlobalStat Icon={CheckCircleIcon} value={impact.successfulRescues} label="Rescues Done" />
         </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <EfficiencyStat
+            Icon={SparkIcon}
+            value={impact.successRate != null ? `${impact.successRate}%` : "—"}
+            label="Rescue success rate"
+            hint={`${impact.successfulRescues} of ${impact.totalListings} listed rescues completed`}
+          />
+          <EfficiencyStat
+            Icon={ClockIcon}
+            value={formatDuration(impact.avgTimeToClaimMinutes)}
+            label="Avg time to claim"
+            hint="Listing created to first claim"
+          />
+          <EfficiencyStat
+            Icon={UsersIcon}
+            value={String(impact.totalListings)}
+            label="Listings created"
+            hint="Total surplus food listings on the platform"
+          />
+        </div>
+
+        {personal && (
+          <section className="mt-8">
+            <h2 className="mb-3 text-lg font-semibold text-charcoal">Your contribution</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <GlobalStat Icon={UtensilsIcon} value={personal.mealsRescued} label="Meals" />
+              <GlobalStat Icon={ScaleIcon} value={personal.kgDiverted} label="Kg Diverted" />
+              <GlobalStat Icon={HeartHandIcon} value={personal.peopleServed} label="People" />
+              <GlobalStat
+                Icon={SparkIcon}
+                value={personal.successRate != null ? `${personal.successRate}%` : "—"}
+                label="Success rate"
+              />
+            </div>
+          </section>
+        )}
 
         <div className="mt-10">
           <h2 className="mb-4 text-lg font-semibold text-charcoal">Recent rescues</h2>
@@ -130,7 +180,7 @@ function GlobalStat({
   label,
 }: {
   Icon: React.ComponentType<{ size?: number }>;
-  value: number;
+  value: number | string;
   label: string;
 }) {
   return (
@@ -140,7 +190,7 @@ function GlobalStat({
           <Icon size={18} />
         </span>
         <p className="mt-3 text-3xl font-extrabold text-charcoal">
-          {Number(value).toLocaleString()}
+          {typeof value === "number" ? Number(value).toLocaleString() : value}
         </p>
         <p className="mt-1 text-xs font-medium uppercase tracking-wide text-charcoal-muted">
           {label}
@@ -148,4 +198,42 @@ function GlobalStat({
       </CardContent>
     </Card>
   );
+}
+
+function EfficiencyStat({
+  Icon,
+  value,
+  label,
+  hint,
+}: {
+  Icon: React.ComponentType<{ size?: number }>;
+  value: string;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-4 p-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage/10 text-sage">
+          <Icon size={18} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xl font-extrabold text-charcoal">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-charcoal-muted">
+            {label}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-charcoal/50">{hint}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function formatDuration(minutes: number | null): string {
+  if (minutes == null) return "—";
+  if (minutes < 1) return "<1 min";
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }

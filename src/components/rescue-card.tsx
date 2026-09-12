@@ -68,9 +68,12 @@ export function RescueCard({ data }: { data: RescueCardData }) {
               </span>
             </div>
             <p className="mt-6 text-xs uppercase tracking-widest text-white/70">
-              Rescue Card
+              Rescue Card · Completed Rescue
             </p>
             <p className="mt-1 text-3xl font-bold tracking-tight">{rescueId}</p>
+            {data.foodName && (
+              <p className="mt-1 truncate text-sm font-medium text-white/85">{data.foodName}</p>
+            )}
           </div>
 
           <div>
