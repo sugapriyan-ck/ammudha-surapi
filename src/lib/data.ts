@@ -12,6 +12,51 @@ export interface GlobalImpact {
   totalListings: number;
 }
 
+export interface LiveOverview {
+  activeRescues: number;
+  activeListings: number;
+  activeOrganizations: number;
+  completedRescues: number;
+}
+
+export async function fetchLiveOverview(): Promise<LiveOverview> {
+  const supabase = await createClient();
+
+  const [available, inMotion, completed, activeRescuers] = await Promise.all([
+    supabase
+      .from("food_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "available"),
+    supabase
+      .from("food_listings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["claimed", "picked_up"]),
+    supabase
+      .from("food_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "distribution_completed"),
+    supabase
+      .from("claims")
+      .select("rescuer:profiles!claims_rescuer_id_fkey(id, organization)")
+      .in("status", ["claimed", "picked_up"]),
+  ]);
+
+  const organizations = new Set(
+    ((activeRescuers.data ?? []) as unknown as Array<{
+      rescuer: { id: string; organization: string }[] | null;
+    }>)
+      .map((r) => r.rescuer?.[0]?.organization)
+      .filter((o): o is string => Boolean(o))
+  ).size;
+
+  return {
+    activeRescues: inMotion.count ?? 0,
+    activeListings: available.count ?? 0,
+    activeOrganizations: organizations,
+    completedRescues: completed.count ?? 0,
+  };
+}
+
 function mealsFromListing(quantity: number, unit: string): number {
   if (unit === "Meals") return quantity;
   return Math.round(quantity * (unit === "Boxes" ? 8 : unit === "Packs" ? 4 : 2));
@@ -141,7 +186,7 @@ export async function fetchRecentRescues(limit = 10) {
   const { data: claims } = await supabase
     .from("claims")
     .select(
-      "id, claimed_at, picked_up_at, completed_at, status, rescuer:profiles!claims_rescuer_id_fkey(id, organization), listing:food_listings(*, donor:profiles!food_listings_donor_id_fkey(id, organization))"
+      "id, claimed_at, picked_up_at, completed_at, status, rescuer:profiles!claims_rescuer_id_fkey(id, organization), listing:food_listings(*, donor:profiles!food_listings_donor_id_fkey(id, organization)), proof:distribution_proofs(*)"
     )
     .eq("status", "distribution_completed")
     .order("completed_at", { ascending: false })

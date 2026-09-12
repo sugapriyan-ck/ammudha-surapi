@@ -58,6 +58,14 @@ export default async function MyListingsPage() {
               return (
                 <Card key={listing.id} className="overflow-hidden">
                   <CardContent className="p-5">
+                    {listing.photo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={listing.photo_url}
+                        alt=""
+                        className="mb-4 aspect-[16/7] w-full rounded-xl object-cover"
+                      />
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ListingCard } from "@/components/listing-card";
+import { RescueMap } from "@/components/rescue-map";
 import { Badge } from "@/components/ui/badge";
 import type { FoodListing } from "@/lib/types";
 import { computeRescueScore } from "@/lib/rescue-score";
@@ -29,6 +30,7 @@ export default function DiscoveryFeed() {
   const [locating, setLocating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [showMap, setShowMap] = useState(true);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
@@ -142,6 +144,30 @@ export default function DiscoveryFeed() {
         ))}
       </div>
 
+      {!loading && sorted.length > 0 && (
+        <div className="mb-5">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-charcoal-muted">
+              Nearby on the map
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowMap((v) => !v)}
+              className="rounded-full bg-white px-3 py-1 text-xs font-medium text-charcoal ring-1 ring-charcoal/10 transition-colors hover:bg-warm-cream"
+            >
+              {showMap ? "Hide map" : "Show map"}
+            </button>
+          </div>
+          {showMap && (
+            <RescueMap
+              listings={sorted.map(({ listing }) => listing)}
+              userLat={userLat ?? 13.0827}
+              userLng={userLng ?? 80.2707}
+            />
+          )}
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-charcoal-muted">
           {locating
@@ -177,12 +203,13 @@ export default function DiscoveryFeed() {
       ) : (
         <div className="space-y-3">
           {sorted.map(({ listing }) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              userLat={userLat ?? 13.0827}
-              userLng={userLng ?? 80.2707}
-            />
+            <div key={listing.id} id={`listing-${listing.id}`} className="scroll-mt-24">
+              <ListingCard
+                listing={listing}
+                userLat={userLat ?? 13.0827}
+                userLng={userLng ?? 80.2707}
+              />
+            </div>
           ))}
         </div>
       )}

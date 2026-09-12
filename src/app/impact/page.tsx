@@ -15,6 +15,7 @@ import {
   SparkIcon,
   UsersIcon,
 } from "@/components/icons";
+import { JourneyMotif } from "@/components/journey-motif";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function ImpactPage() {
   return (
     <main className="flex-1 px-4 pb-24 pt-16 lg:pt-6 lg:px-8 lg:pb-8">
       <div className="mx-auto max-w-5xl">
+        <JourneyMotif className="mb-3" />
         <h1 className="text-2xl font-bold text-charcoal">Community Impact</h1>
         <p className="mt-1 text-charcoal-muted">
           Real impact, tracked across every completed rescue.
@@ -51,6 +53,10 @@ export default async function ImpactPage() {
           <GlobalStat Icon={ScaleIcon} value={impact.kgDiverted} label="Kg Diverted" />
           <GlobalStat Icon={HeartHandIcon} value={impact.peopleServed} label="People Served" />
           <GlobalStat Icon={CheckCircleIcon} value={impact.successfulRescues} label="Rescues Done" />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-charcoal/5 bg-white p-5">
+          <OutcomeBar rescued={impact.successfulRescues} total={impact.totalListings} />
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -100,6 +106,11 @@ export default async function ImpactPage() {
                 hint={`${personal.successfulRescues} of ${personal.totalListings} shared listings were rescued`}
               />
             </div>
+            <OutcomeBar
+              rescued={personal.successfulRescues}
+              total={personal.totalListings}
+              className="mt-6"
+            />
           </section>
         )}
 
@@ -129,6 +140,11 @@ export default async function ImpactPage() {
                 hint={`${personal.successfulRescues} of ${personal.totalListings} claims completed`}
               />
             </div>
+            <OutcomeBar
+              rescued={personal.successfulRescues}
+              total={personal.totalListings}
+              className="mt-6"
+            />
           </section>
         )}
 
@@ -268,6 +284,44 @@ function EfficiencyStat({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function OutcomeBar({
+  rescued,
+  total,
+  className,
+}: {
+  rescued: number;
+  total: number;
+  className?: string;
+}) {
+  const notRescued = Math.max(total - rescued, 0);
+  const pct = total > 0 ? Math.round((rescued / total) * 100) : 0;
+  const rest = Math.max(100 - pct, 0);
+  return (
+    <div className={className}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-charcoal-muted">
+          Outcome
+        </span>
+        <span className="text-xs font-semibold text-charcoal">{pct}% rescued</span>
+      </div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-charcoal/10">
+        <div className="bg-sage" style={{ width: `${pct}%` }} />
+        <div className="bg-terracotta/25" style={{ width: `${rest}%` }} />
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-[10px] text-charcoal-muted">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-sage" />
+          Rescued ({rescued.toLocaleString()})
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-terracotta/40" />
+          Not rescued ({notRescued.toLocaleString()})
+        </span>
+      </div>
+    </div>
   );
 }
 

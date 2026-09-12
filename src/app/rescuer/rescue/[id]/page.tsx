@@ -17,6 +17,7 @@ import {
 } from "@/lib/rescue-score";
 import { statusLabel, statusVariant } from "@/lib/status";
 import { HeartHandIcon, LeafIcon, ShieldCheckIcon } from "@/components/icons";
+import { cn } from "@/lib/cn";
 
 export const dynamic = "force-dynamic";
 
@@ -224,20 +225,52 @@ function ChainOfCustody({
   const steps: Array<{ label: string; at?: string | null }> = [
     { label: "Listed", at: listing.created_at },
     { label: "Claimed", at: claim.claimed_at },
-    { label: "Picked up", at: claim.picked_up_at },
+    { label: "Picked Up", at: claim.picked_up_at },
     { label: "Completed", at: claim.completed_at },
   ];
   return (
-    <ul className="mt-2 space-y-1 border-t border-terracotta/10 pt-2 text-xs text-charcoal-muted">
-      {steps.map((s) => (
-        <li key={s.label} className="flex items-center justify-between gap-3">
-          <span>{s.label}</span>
-          <span className={s.at ? "font-medium text-charcoal" : "text-charcoal/30"}>
-            {s.at ? new Date(s.at).toLocaleString() : "—"}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <ol className="mt-3 space-y-0">
+      {steps.map((s, i) => {
+        const done = Boolean(s.at);
+        const last = i === steps.length - 1;
+        return (
+          <li key={s.label} className="relative flex gap-3 pb-4 last:pb-0">
+            {!last && (
+              <span
+                className={cn(
+                  "absolute left-[6.5px] top-4 h-full w-px",
+                  done ? "bg-sage/60" : "bg-charcoal/10"
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "relative z-10 mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2",
+                done ? "border-sage bg-sage" : "border-charcoal/25 bg-white"
+              )}
+            />
+            <div className="flex flex-1 items-center justify-between gap-3">
+              <span
+                className={cn(
+                  "text-sm",
+                  done ? "font-medium text-charcoal" : "text-charcoal/40"
+                )}
+              >
+                {s.label}
+              </span>
+              <span
+                className={cn(
+                  "text-xs tabular-nums",
+                  done ? "text-charcoal-muted" : "text-charcoal/30"
+                )}
+              >
+                {s.at ? new Date(s.at).toLocaleString() : "Pending"}
+              </span>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

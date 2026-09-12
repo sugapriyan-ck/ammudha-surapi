@@ -47,6 +47,7 @@ export default function NewListingPage() {
     d.setMinutes(d.getMinutes() - 5);
     return d.toISOString().slice(0, 16);
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -150,6 +151,43 @@ export default function NewListingPage() {
                   rows={3}
                   placeholder="Ingredients, portion sizes, any special instructions…"
                 />
+              </div>
+
+              {/* Food photo */}
+              <div>
+                <Label>Food photo (optional)</Label>
+                <div className="flex items-center gap-4">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-warm-cream px-4 py-3 text-sm font-medium text-charcoal ring-1 ring-charcoal/10 transition-colors hover:bg-charcoal/5">
+                    <input
+                      type="file"
+                      name="photo"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => setPhotoPreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setPhotoPreview(null);
+                        }
+                      }}
+                    />
+                    Upload photo
+                  </label>
+                  <p className="text-xs text-charcoal-muted">
+                    A clear photo helps rescuers judge quantity and freshness.
+                  </p>
+                </div>
+                {photoPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoPreview}
+                    alt="Food photo preview"
+                    className="mt-3 aspect-[16/7] w-full max-w-xs rounded-xl object-cover ring-1 ring-charcoal/10"
+                  />
+                )}
               </div>
 
               <div>

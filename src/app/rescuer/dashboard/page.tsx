@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import DiscoveryFeed from "@/app/rescuer/dashboard/discovery-feed";
 import { BoxIcon } from "@/components/icons";
 import { fetchRescuerClaims } from "@/lib/data";
+import { LiveOverview } from "@/components/live-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,10 @@ export default async function RescuerDashboardPage() {
           {inProgress.length > 0 && (
             <Badge variant="warning">{inProgress.length} in progress</Badge>
           )}
+        </div>
+
+        <div className="mb-8">
+          <LiveOverview />
         </div>
 
         {/* Active rescues strip */}

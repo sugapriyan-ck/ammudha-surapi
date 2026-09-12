@@ -41,6 +41,7 @@ create table public.food_listings (
   prepared_at timestamptz,
   storage_condition text check (storage_condition in ('Refrigerated', 'Room Temperature', 'Frozen', 'Other')),
   safety_confirmed boolean default false,
+  photo_url text,
   lat double precision not null,
   lng double precision not null,
   status text not null default 'available' check (status in ('available', 'claimed', 'picked_up', 'distribution_completed')),
@@ -103,6 +104,15 @@ create policy "anyone can read proof photos"
   on storage.objects for select using (bucket_id = 'distribution-proofs');
 create policy "authenticated users can upload proof photos"
   on storage.objects for insert with check (bucket_id = 'distribution-proofs' and auth.role() = 'authenticated');
+
+-- Food photos
+insert into storage.buckets (id, name, public) values ('food-photos', 'food-photos', true)
+on conflict (id) do nothing;
+
+create policy "anyone can read food photos"
+  on storage.objects for select using (bucket_id = 'food-photos');
+create policy "authenticated users can upload food photos"
+  on storage.objects for insert with check (bucket_id = 'food-photos' and auth.role() = 'authenticated');
 
 -- =============================================
 -- Helper functions

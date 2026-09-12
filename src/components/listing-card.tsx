@@ -10,29 +10,14 @@ import {
   distanceKm,
   formatDistance,
   getUrgencyInfo,
-  getRescueScoreTier,
   countdownText,
 } from "@/lib/rescue-score";
 import type { FoodListing } from "@/lib/types";
 import { claimListing } from "@/lib/actions";
 import { StatusDot } from "@/components/icons";
 import { statusLabel, statusVariant } from "@/lib/status";
-
-function ScoreRing({ score }: { score: number }) {
-  const tier = getRescueScoreTier(score);
-  return (
-    <div
-      className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full text-sm font-bold leading-none text-white"
-      style={{ backgroundColor: tier.color }}
-      title={`Rescue Score: ${score}/100 — ${tier.label}`}
-    >
-      <span>{score}</span>
-      <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide opacity-90">
-        {tier.label}
-      </span>
-    </div>
-  );
-}
+import { RescueScoreVisual } from "@/components/rescue-score-visual";
+import { UrgencyBar } from "@/components/urgency-bar";
 
 export function ListingCard({
   listing,
@@ -74,6 +59,16 @@ export function ListingCard({
 
   return (
     <Card className="overflow-hidden">
+      {listing.photo_url && (
+        <div className="relative aspect-[16/7] w-full overflow-hidden bg-warm-cream">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={listing.photo_url}
+            alt={listing.food_name}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </div>
+      )}
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -85,7 +80,6 @@ export function ListingCard({
               {listing.quantity} {listing.unit} · {listing.dietary_type}
             </p>
           </div>
-          {listing.status === "available" && factors && <ScoreRing score={factors.total} />}
         </div>
 
         {listing.description && (
@@ -103,6 +97,11 @@ export function ListingCard({
           {distKm != null && listing.status === "available" && (
             <span className="font-medium text-charcoal/80">{formatDistance(distKm)}</span>
           )}
+        </div>
+
+        {listing.status === "available" && <UrgencyBar deadline={listing.pickup_deadline} createdAt={listing.created_at} className="mt-2" />}
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
           <Badge variant={urgency.tier === "critical" ? "danger" : urgency.tier === "at_risk" ? "warning" : "success"}>
             <StatusDot
               tone={urgency.tier === "critical" ? "red" : urgency.tier === "at_risk" ? "amber" : "green"}
@@ -118,13 +117,7 @@ export function ListingCard({
           <Badge variant={statusVariant(listing.status)}>{statusLabel(listing.status)}</Badge>
         </div>
 
-        {listing.status === "available" && factors && factors.reasons.length > 0 && (
-          <ul className="mt-3 space-y-0.5 border-t border-charcoal/5 pt-2 text-xs text-charcoal/70">
-            {factors.reasons.slice(0, 4).map((r, i) => (
-              <li key={i}>• {r}</li>
-            ))}
-          </ul>
-        )}
+        {listing.status === "available" && factors && <RescueScoreVisual factors={factors} />}
 
         {listing.status === "available" && !isExpired && (
           <form

@@ -72,9 +72,17 @@ export default async function MyRescuesPage() {
                   <Card className="transition hover:shadow-md">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        {listing.photo_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={listing.photo_url}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-charcoal">{listing.food_name}</h3>
+                            <h3 className="truncate font-semibold text-charcoal">{listing.food_name}</h3>
                             <Badge variant="neutral">{listing.category}</Badge>
                           </div>
                           <p className="mt-0.5 text-sm text-charcoal-muted">

@@ -255,6 +255,19 @@ export async function createListing(formData: FormData) {
     return { error: "Pickup deadline must be in the future." };
   }
 
+  // Optional food photo — uploaded to the food-photos bucket.
+  const photoFile = formData.get("photo") as File | null;
+  let photoUrl: string | null = null;
+  if (photoFile && photoFile.size > 0) {
+    const path = `listings/${Date.now()}-${photoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
+    const { error: uploadError } = await supabase.storage
+      .from("food-photos")
+      .upload(path, photoFile);
+    if (uploadError) return { error: "Could not upload the food photo." };
+    const { data: urlData } = supabase.storage.from("food-photos").getPublicUrl(path);
+    photoUrl = urlData.publicUrl;
+  }
+
   const { error } = await supabase.from("food_listings").insert({
     donor_id: user.id,
     food_name,
@@ -267,6 +280,7 @@ export async function createListing(formData: FormData) {
     prepared_at: preparedAt,
     storage_condition: storageCondition,
     safety_confirmed: true,
+    photo_url: photoUrl,
     lat,
     lng,
     status: "available",

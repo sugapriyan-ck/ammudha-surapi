@@ -9,6 +9,7 @@ import { estimateKgDiverted } from "@/lib/rescue-score";
 import { statusLabel, statusVariant } from "@/lib/status";
 import { PlusIcon, UtensilsIcon, WarningIcon } from "@/components/icons";
 import { CountdownTimer } from "@/components/countdown-timer";
+import { LiveOverview } from "@/components/live-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,10 @@ export default async function DonorDashboardPage() {
           <StatCard value={completed.length} label="Rescues Done" />
         </div>
 
+        <div className="mt-6">
+          <LiveOverview />
+        </div>
+
         {/* Active listings */}
         {expired.length > 0 && (
             <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4">
@@ -110,7 +115,15 @@ export default async function DonorDashboardPage() {
                   <Link key={listing.id} href={`/donor/listings`} className="block">
                     <Card className="transition hover:shadow-md">
                       <CardContent className="flex items-center justify-between gap-4 p-4">
-                        <div className="min-w-0">
+                        {listing.photo_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={listing.photo_url}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="truncate font-semibold text-charcoal">
                               {listing.food_name}

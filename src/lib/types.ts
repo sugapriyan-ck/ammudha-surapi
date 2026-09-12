@@ -41,6 +41,7 @@ export interface FoodListing {
   prepared_at?: string | null;
   storage_condition?: StorageCondition | null;
   safety_confirmed?: boolean | null;
+  photo_url?: string | null;
   lat: number;
   lng: number;
   status: ListingStatus;

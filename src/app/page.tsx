@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { fetchGlobalImpact, fetchActiveListings } from "@/lib/data";
 import { getUrgencyInfo, countdownText } from "@/lib/rescue-score";
+import { LiveOverview } from "@/components/live-overview";
+import { RescueStory } from "@/components/rescue-story";
+import { JourneyMotif } from "@/components/journey-motif";
 import {
   UtensilsIcon,
   HeartHandIcon,
@@ -97,6 +100,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Live rescue overview */}
+      <section className="mx-auto max-w-6xl px-6 py-6">
+        <LiveOverview />
+      </section>
+
       {/* Live listings */}
       {active.length > 0 && (
         <section className="mx-auto max-w-6xl px-6 py-12">
@@ -164,6 +172,9 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Featured rescue story */}
+      <RescueStory />
+
       {/* How it works */}
       <section className="relative overflow-hidden bg-white py-20">
         <div
@@ -174,7 +185,10 @@ export default async function HomePage() {
         </div>
         <div className="relative mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sage">
+            <div className="flex justify-center">
+              <JourneyMotif />
+            </div>
+            <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sage">
               <WheatIcon size={15} />
               How it works
             </span>
