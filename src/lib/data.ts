@@ -100,8 +100,8 @@ export async function fetchPersonalImpact(userId: string, role: Role): Promise<G
     const peopleServed = (proofs ?? []).reduce((s, p) => s + (p.people_served ?? 0), 0);
 
     return {
-      mealsRescued: completed.reduce((sum, l) => sum + mealsFromListing(l.quantity, l.unit), 0),
-      kgDiverted: Math.round(completed.reduce((s, l) => s + estimateKgDiverted(l.quantity, l.unit), 0)),
+      mealsRescued: all.reduce((sum, l) => sum + mealsFromListing(l.quantity, l.unit), 0),
+      kgDiverted: Math.round(all.reduce((s, l) => s + estimateKgDiverted(l.quantity, l.unit), 0)),
       peopleServed,
       successfulRescues: completed.length,
       successRate: all.length > 0 ? Math.round((completed.length / all.length) * 100) : null,

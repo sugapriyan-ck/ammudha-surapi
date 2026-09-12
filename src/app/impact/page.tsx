@@ -74,17 +74,59 @@ export default async function ImpactPage() {
           />
         </div>
 
-        {personal && (
+        {personal && profile?.role === "donor" && (
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold text-charcoal">Your contribution</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <GlobalStat Icon={UtensilsIcon} value={personal.mealsRescued} label="Meals" />
-              <GlobalStat Icon={ScaleIcon} value={personal.kgDiverted} label="Kg Diverted" />
-              <GlobalStat Icon={HeartHandIcon} value={personal.peopleServed} label="People" />
-              <GlobalStat
+            <h2 className="text-lg font-semibold text-charcoal">Your donation impact</h2>
+            <p className="mt-1 text-sm text-charcoal-muted">
+              Everything you shared with the community — and how much of it reached people.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <GlobalStat Icon={UtensilsIcon} value={personal.mealsRescued} label="Meals Donated" />
+              <GlobalStat Icon={ScaleIcon} value={personal.kgDiverted} label="Kg Shared" />
+              <GlobalStat Icon={HeartHandIcon} value={personal.peopleServed} label="People Fed" />
+              <GlobalStat Icon={CheckCircleIcon} value={personal.successfulRescues} label="Rescues Done" />
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <EfficiencyStat
+                Icon={UsersIcon}
+                value={String(personal.totalListings)}
+                label="Listings contributed"
+                hint="Total surplus food listings you shared"
+              />
+              <EfficiencyStat
                 Icon={SparkIcon}
                 value={personal.successRate != null ? `${personal.successRate}%` : "—"}
-                label="Success rate"
+                label="Donation success rate"
+                hint={`${personal.successfulRescues} of ${personal.totalListings} shared listings were rescued`}
+              />
+            </div>
+          </section>
+        )}
+
+        {personal && profile?.role === "rescuer" && (
+          <section className="mt-8">
+            <h2 className="text-lg font-semibold text-charcoal">Your rescue impact</h2>
+            <p className="mt-1 text-sm text-charcoal-muted">
+              The food you personally rescued and distributed, tracked transparently.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <GlobalStat Icon={UtensilsIcon} value={personal.mealsRescued} label="Meals Rescued" />
+              <GlobalStat Icon={ScaleIcon} value={personal.kgDiverted} label="Kg Diverted" />
+              <GlobalStat Icon={HeartHandIcon} value={personal.peopleServed} label="People Served" />
+              <GlobalStat Icon={LeafIcon} value={personal.successfulRescues} label="Rescues Done" />
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <EfficiencyStat
+                Icon={UsersIcon}
+                value={String(personal.totalListings)}
+                label="Claims made"
+                hint="Rescues you claimed on the platform"
+              />
+              <EfficiencyStat
+                Icon={SparkIcon}
+                value={personal.successRate != null ? `${personal.successRate}%` : "—"}
+                label="Rescue success rate"
+                hint={`${personal.successfulRescues} of ${personal.totalListings} claims completed`}
               />
             </div>
           </section>
