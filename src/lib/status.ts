@@ -3,17 +3,13 @@ export type StatusVariant = "success" | "warning" | "danger" | "neutral" | "prim
 const LISTING_STATUSES: Record<string, { label: string; variant: StatusVariant }> = {
   available: { label: "Available", variant: "success" },
   claimed: { label: "Claimed", variant: "warning" },
-  pickup_in_progress: { label: "Pickup in Progress", variant: "warning" },
   picked_up: { label: "Picked Up", variant: "primary" },
-  distribution_in_progress: { label: "Distribution in Progress", variant: "primary" },
   distribution_completed: { label: "Distribution Completed", variant: "neutral" },
 };
 
 const CLAIM_STATUSES: Record<string, { label: string; variant: StatusVariant }> = {
   claimed: { label: "Claimed", variant: "warning" },
-  pickup_in_progress: { label: "Pickup in Progress", variant: "warning" },
   picked_up: { label: "Picked Up", variant: "primary" },
-  distribution_in_progress: { label: "Distribution in Progress", variant: "primary" },
   distribution_completed: { label: "Distribution Completed", variant: "success" },
 };
 

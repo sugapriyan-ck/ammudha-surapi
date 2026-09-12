@@ -96,19 +96,14 @@ export default async function MyListingsPage() {
                           </div>
                         )}
                       </div>
-                    {listing.status === "pickup_in_progress" && listing.claim?.rescuer && (
+                    {/* Donor confirm pickup */}
+                    {listing.status === "claimed" && listing.claim?.rescuer && (
                       <ConfirmPickupButton listingId={listing.id} orgName={listing.claim.rescuer.organization} />
                     )}
 
                     {listing.status === "picked_up" && (
                       <p className="mt-3 rounded-xl bg-sage/10 p-3 text-center text-sm font-medium text-sage-dark">
                         Food picked up{listing.claim?.picked_up_at ? ` on ${new Date(listing.claim.picked_up_at).toLocaleString()}` : ""} — awaiting distribution proof
-                      </p>
-                    )}
-
-                    {listing.status === "distribution_in_progress" && (
-                      <p className="mt-3 rounded-xl bg-sage/10 p-3 text-center text-sm font-medium text-sage-dark">
-                        Distribution in progress — the rescuer will submit proof shortly
                       </p>
                     )}
 

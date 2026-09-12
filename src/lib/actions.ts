@@ -348,78 +348,6 @@ export async function claimListing(formData: FormData) {
   redirect("/rescuer/dashboard");
 }
 
-export async function startPickup(listingId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const { data: claim } = await supabase
-    .from("claims")
-    .select("id, rescuer_id, listing:food_listings(donor_id, food_name, status)")
-    .eq("listing_id", listingId)
-    .single();
-
-  const listing = claim?.listing as { donor_id: string; food_name: string; status: string } | undefined;
-  if (!claim || !listing) return { error: "No claim exists for this listing" };
-  if (claim.rescuer_id !== user.id) return { error: "Only the claiming organization can start pickup." };
-  if (listing.status !== "claimed") return { error: "Pickup can only start after a claim." };
-
-  await supabase.from("food_listings").update({ status: "pickup_in_progress" }).eq("id", listingId);
-  await supabase
-    .from("claims")
-    .update({ status: "pickup_in_progress", pickup_in_progress_at: new Date().toISOString() })
-    .eq("listing_id", listingId);
-
-  if (listing.donor_id) {
-    await supabase.from("notifications").insert({
-      user_id: listing.donor_id,
-      title: "Pickup in progress 🚚",
-      message: `A rescuer is on their way to pick up "${listing.food_name}". Confirm the pickup when they arrive.`,
-      type: "pickup",
-    });
-  }
-
-  revalidatePath("/", "layout");
-}
-
-export async function startDistribution(listingId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const { data: claim } = await supabase
-    .from("claims")
-    .select("id, rescuer_id, listing:food_listings(donor_id, food_name, status)")
-    .eq("listing_id", listingId)
-    .single();
-
-  const listing = claim?.listing as { donor_id: string; food_name: string; status: string } | undefined;
-  if (!claim || !listing) return { error: "No claim exists for this listing" };
-  if (claim.rescuer_id !== user.id) return { error: "Only the claiming organization can start distribution." };
-  if (listing.status !== "picked_up") return { error: "Distribution can only start after pickup." };
-
-  await supabase.from("food_listings").update({ status: "distribution_in_progress" }).eq("id", listingId);
-  await supabase
-    .from("claims")
-    .update({ status: "distribution_in_progress", distribution_in_progress_at: new Date().toISOString() })
-    .eq("listing_id", listingId);
-
-  if (listing.donor_id) {
-    await supabase.from("notifications").insert({
-      user_id: listing.donor_id,
-      title: "Distribution in progress 🥗",
-      message: `"${listing.food_name}" is being distributed to people in need.`,
-      type: "pickup",
-    });
-  }
-
-  revalidatePath("/", "layout");
-}
-
 export async function confirmPickup(listingId: string) {
   const supabase = await createClient();
   const {
@@ -430,11 +358,14 @@ export async function confirmPickup(listingId: string) {
   // Donor confirms pickup.
   const { data: listing } = await supabase
     .from("food_listings")
-    .select("donor_id")
+    .select("donor_id, status")
     .eq("id", listingId)
     .single();
   if (!listing || listing.donor_id !== user.id) {
     return { error: "Only the listing donor can confirm pickup." };
+  }
+  if (listing.status !== "claimed") {
+    return { error: "Pickup can only be confirmed after the food is claimed." };
   }
 
   await supabase.from("food_listings").update({ status: "picked_up" }).eq("id", listingId);
@@ -515,8 +446,8 @@ export async function submitDistributionProof(formData: FormData) {
     .single();
 
   if (!claim) return { error: "No claim exists for this listing" };
-  if ((claim.listing as { status?: string } | undefined)?.status !== "distribution_in_progress") {
-    return { error: "Distribution must be in progress before submitting proof." };
+  if ((claim.listing as { status?: string } | undefined)?.status !== "picked_up") {
+    return { error: "The food must be picked up before submitting proof." };
   }
 
   const { data: proof, error: proofError } = await supabase

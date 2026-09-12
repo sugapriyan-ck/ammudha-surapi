@@ -11,20 +11,9 @@ export type QuantityUnit = "Meals" | "Packs" | "Kg" | "Boxes";
 
 export type DietaryType = "Vegetarian" | "Non-Vegetarian" | "Vegan" | "Other";
 
-export type ListingStatus =
-  | "available"
-  | "claimed"
-  | "pickup_in_progress"
-  | "picked_up"
-  | "distribution_in_progress"
-  | "distribution_completed";
+export type ListingStatus = "available" | "claimed" | "picked_up" | "distribution_completed";
 
-export type ClaimStatus =
-  | "claimed"
-  | "pickup_in_progress"
-  | "picked_up"
-  | "distribution_in_progress"
-  | "distribution_completed";
+export type ClaimStatus = "claimed" | "picked_up" | "distribution_completed";
 
 export type StorageCondition = "Refrigerated" | "Room Temperature" | "Frozen" | "Other";
 
@@ -65,9 +54,7 @@ export interface Claim {
   listing_id: string;
   rescuer_id: string;
   claimed_at: string;
-  pickup_in_progress_at?: string | null;
   picked_up_at?: string | null;
-  distribution_in_progress_at?: string | null;
   completed_at?: string | null;
   status: ClaimStatus;
   rescuer?: Profile | null;

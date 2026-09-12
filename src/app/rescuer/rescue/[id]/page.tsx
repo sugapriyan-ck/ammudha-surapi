@@ -217,18 +217,14 @@ function ChainOfCustody({
   listing: { created_at: string };
   claim: {
     claimed_at: string;
-    pickup_in_progress_at?: string | null;
     picked_up_at?: string | null;
-    distribution_in_progress_at?: string | null;
     completed_at?: string | null;
   };
 }) {
   const steps: Array<{ label: string; at?: string | null }> = [
     { label: "Listed", at: listing.created_at },
     { label: "Claimed", at: claim.claimed_at },
-    { label: "Pickup in progress", at: claim.pickup_in_progress_at },
     { label: "Picked up", at: claim.picked_up_at },
-    { label: "Distribution in progress", at: claim.distribution_in_progress_at },
     { label: "Completed", at: claim.completed_at },
   ];
   return (

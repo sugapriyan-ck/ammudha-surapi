@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { submitDistributionProof, startPickup, completePickup, startDistribution } from "@/lib/actions";
-import { BoxIcon, CameraIcon, LeafIcon, UsersIcon } from "@/components/icons";
+import { submitDistributionProof, completePickup } from "@/lib/actions";
+import { BoxIcon, CameraIcon, LeafIcon } from "@/components/icons";
 
 export function ProofForm({
   listingId,
@@ -57,10 +57,8 @@ export function ProofForm({
     <Card className="mt-6 border-sage/30">
       <CardContent className="p-6">
         <h2 className="text-lg font-semibold text-charcoal">
-          {listingStatus === "claimed" && "Step 1: Head to the pickup"}
-          {listingStatus === "pickup_in_progress" && "Pickup in progress"}
-          {listingStatus === "picked_up" && "Step 3: Distribute the food"}
-          {listingStatus === "distribution_in_progress" && "Submit distribution proof"}
+          {listingStatus === "claimed" && "Step 1: Confirm you picked up the food"}
+          {listingStatus === "picked_up" && "Step 2: Submit distribution proof"}
         </h2>
         <p className="mt-1 text-sm text-charcoal-muted">
           Self-reported proof. This will be labeled as{" "}
@@ -71,50 +69,19 @@ export function ProofForm({
           <div className="mt-4">
             <Button
               variant="secondary"
-              onClick={() => run(() => startPickup(listingId))}
-              disabled={working}
-            >
-              <BoxIcon size={15} />
-              {working ? "Starting…" : "Pickup in progress — I&apos;m on the way"}
-            </Button>
-            <p className="mt-2 text-xs text-charcoal-muted">
-              Lets the donor know you&apos;re en route so they can confirm pickup.
-            </p>
-          </div>
-        )}
-
-        {listingStatus === "pickup_in_progress" && (
-          <div className="mt-4">
-            <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
-              The donor has been notified to confirm your arrival. In the meantime you can mark
-              the food as picked up yourself.
-            </p>
-            <Button
-              variant="secondary"
-              className="mt-3"
               onClick={() => run(() => completePickup(listingId))}
               disabled={working}
             >
               <BoxIcon size={15} />
-              {working ? "Marking…" : "Food is now with me (mark as picked up)"}
+              {working ? "Confirming…" : "Food is now with me (mark as picked up)"}
             </Button>
+            <p className="mt-2 text-xs text-charcoal-muted">
+              The donor can also confirm pickup from their side. Either works.
+            </p>
           </div>
         )}
 
         {listingStatus === "picked_up" && (
-          <div className="mt-4">
-            <Button
-              variant="secondary"
-              onClick={() => run(() => startDistribution(listingId))}
-              disabled={working}
-            >
-              <UsersIcon size={15} />
-              {working ? "Starting…" : "Distribution in progress — I&apos;m sharing the food"}
-            </Button>
-          </div>
-        )}
-
-        {listingStatus === "distribution_in_progress" && (
           <form action={handleSubmit} className="mt-4 space-y-5">
             <input type="hidden" name="listing_id" value={listingId} />
 
@@ -194,7 +161,7 @@ export function ProofForm({
           </form>
         )}
 
-        {listingStatus !== "distribution_in_progress" && error && (
+        {listingStatus !== "picked_up" && error && (
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         )}
       </CardContent>

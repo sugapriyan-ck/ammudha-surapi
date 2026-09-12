@@ -43,7 +43,7 @@ create table public.food_listings (
   safety_confirmed boolean default false,
   lat double precision not null,
   lng double precision not null,
-  status text not null default 'available' check (status in ('available', 'claimed', 'pickup_in_progress', 'picked_up', 'distribution_in_progress', 'distribution_completed')),
+  status text not null default 'available' check (status in ('available', 'claimed', 'picked_up', 'distribution_completed')),
   created_at timestamptz not null default now()
 );
 
@@ -57,11 +57,9 @@ create table public.claims (
   listing_id uuid not null unique references public.food_listings(id) on delete cascade,
   rescuer_id uuid not null references public.profiles(id) on delete cascade,
   claimed_at timestamptz not null default now(),
-  pickup_in_progress_at timestamptz,
   picked_up_at timestamptz,
-  distribution_in_progress_at timestamptz,
   completed_at timestamptz,
-  status text not null default 'claimed' check (status in ('claimed', 'pickup_in_progress', 'picked_up', 'distribution_in_progress', 'distribution_completed'))
+  status text not null default 'claimed' check (status in ('claimed', 'picked_up', 'distribution_completed'))
 );
 
 create index idx_claims_rescuer on public.claims(rescuer_id);

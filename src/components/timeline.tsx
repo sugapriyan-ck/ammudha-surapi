@@ -2,27 +2,17 @@ import { cn } from "@/lib/cn";
 import {
   UtensilsIcon,
   HeartHandIcon,
-  BoxIcon,
   CheckCircleIcon,
-  UsersIcon,
   LeafIcon,
   CheckIcon,
 } from "@/components/icons";
 
-type Status =
-  | "available"
-  | "claimed"
-  | "pickup_in_progress"
-  | "picked_up"
-  | "distribution_in_progress"
-  | "distribution_completed";
+type Status = "available" | "claimed" | "picked_up" | "distribution_completed";
 
 const STEPS: { key: Status; label: string; Icon: typeof UtensilsIcon }[] = [
   { key: "available", label: "Listed", Icon: UtensilsIcon },
   { key: "claimed", label: "Claimed", Icon: HeartHandIcon },
-  { key: "pickup_in_progress", label: "Pickup", Icon: BoxIcon },
   { key: "picked_up", label: "Picked Up", Icon: CheckCircleIcon },
-  { key: "distribution_in_progress", label: "Distribution", Icon: UsersIcon },
   { key: "distribution_completed", label: "Completed", Icon: LeafIcon },
 ];
 
