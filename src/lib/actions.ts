@@ -368,23 +368,26 @@ export async function confirmPickup(listingId: string) {
     return { error: "Pickup can only be confirmed after the food is claimed." };
   }
 
-  await supabase.from("food_listings").update({ status: "picked_up" }).eq("id", listingId);
-
-  const { data: claim } = await supabase
+  // Update the claim first so the rescuer sees the pickup confirmed even if
+  // the listing update below fails.
+  const { data: claim, error: claimError } = await supabase
     .from("claims")
     .update({ status: "picked_up", picked_up_at: new Date().toISOString() })
     .eq("listing_id", listingId)
     .select("rescuer_id")
     .single();
-
-  if (claim) {
-    await supabase.from("notifications").insert({
-      user_id: claim.rescuer_id,
-      title: "Pickup confirmed ✅",
-      message: "The donor confirmed your pickup. Submit distribution proof when done.",
-      type: "pickup",
-    });
+  if (claimError || !claim) {
+    return { error: "Could not confirm pickup on this claim." };
   }
+
+  await supabase.from("food_listings").update({ status: "picked_up" }).eq("id", listingId);
+
+  await supabase.from("notifications").insert({
+    user_id: claim.rescuer_id,
+    title: "Pickup confirmed ✅",
+    message: "The donor confirmed your pickup. Submit distribution proof when done.",
+    type: "pickup",
+  });
 
   revalidatePath("/", "layout");
 }

@@ -155,7 +155,13 @@ create policy "claims are readable by everyone"
 create policy "rescuers can create claims"
   on public.claims for insert with check (auth.uid() = rescuer_id);
 create policy "claim participants can update claims"
-  on public.claims for update using (auth.uid() = rescuer_id);
+  on public.claims for update using (
+    auth.uid() = rescuer_id
+    or exists (
+      select 1 from public.food_listings fl
+      where fl.id = public.claims.listing_id and fl.donor_id = auth.uid()
+    )
+  );
 
 -- Distribution proofs
 create policy "proofs are readable by everyone"
